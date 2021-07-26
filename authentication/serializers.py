@@ -1,11 +1,14 @@
 from rest_framework import serializers
 from .models import User
+from .utils import Util
 from django.contrib import auth
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.contrib.sites.shortcuts import get_current_site
+from django.urls import reverse
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -55,23 +58,15 @@ class LoginSerializer(serializers.ModelSerializer):
         filtered_user_by_email = User.objects.filter(email=email)
         user = auth.authenticate(email=email, password=password)
 
-        if filtered_user_by_email.exists() and filtered_user_by_email[0].auth_provider != 'email':
-            raise AuthenticationFailed(
-                detail='Please continue your login using ' + filtered_user_by_email[0].auth_provider)
-
         if not user:
             raise AuthenticationFailed('Invalid credentials, try again')
         if not user.is_active:
             raise AuthenticationFailed('Account disabled, contact admin')
-        if not user.is_verified:
-            raise AuthenticationFailed('Email is not verified')
 
         return {
             'email': user.email,
             'tokens': user.tokens
         }
-
-        return super().validate(attrs)
 
 
 class ResetPasswordEmailRequestSerializer(serializers.Serializer):
