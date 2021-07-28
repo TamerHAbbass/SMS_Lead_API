@@ -1,8 +1,9 @@
 from django.urls import path
-from .views import SMSLeadListAPIView, SMSLeadDetailAPIView
+from django.conf.urls import url
+from .views import SMSLeadListAPIView
 
 
 urlpatterns = [
-    path('lead/', SMSLeadListAPIView.as_view(), name="list"),
-    path('leads/', SMSLeadDetailAPIView.as_view(), name="detail"),
+    path('', SMSLeadListAPIView.as_view()),
+    # path(r'<int:uuid>', SMSLeadDetailAPIView.as_view()),
 ]

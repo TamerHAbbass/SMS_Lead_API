@@ -1,8 +1,7 @@
 from django.db import models
-from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin)
+from django.contrib.auth.models import (AbstractUser, BaseUserManager)
 from rest_framework_simplejwt.tokens import RefreshToken
-
-
+import uuid
 
 class UserManager(BaseUserManager):
 
@@ -27,8 +26,9 @@ class UserManager(BaseUserManager):
         return user
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractUser):
 
+    id = models.UUIDField(unique=True, primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     email = models.EmailField(max_length=254, unique=True, db_index=True)
     is_verified = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
