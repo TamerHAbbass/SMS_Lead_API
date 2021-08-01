@@ -16,15 +16,16 @@ from .serializers import SMSLeadSerializer
 
 START_TIME = '06:00:00'
 END_TIME = '20:00:00'
-SMS_CHAR_LIMIT = 520
+SMS_CHAR_LIMIT = 512
+TEST_PHONE_NUMBER = "+19165025313"
 
 def log_data(action):
     # log_data will print action to screen and log in DATE log file
     
     print(action)
-    with open(".\\logs\\" + datetime.date.today().isoformat().replace('-', '') + "_insertSet.log", 'a+') as f:
-        f.write(str(datetime.datetime.now()) + f": {action}..." + '\n')
-        return 1
+    # with open(".\\logs\\" + datetime.date.today().isoformat().replace('-', '') + "_insertSet.log", 'a+') as f:
+    #     f.write(str(datetime.datetime.now()) + f": {action}..." + '\n')
+    #     return 1
 
 
 def connect_to_purecloud():
@@ -142,7 +143,7 @@ def compose_sms(contact):
     for count, x in enumerate(message_segments):
         data = {
         "fromAddress": str(os.environ.get('Tricon_fromAddress')),
-        "toAddress": "...", #''.join(["+1", str(contact['Number'])]),
+        "toAddress": TEST_PHONE_NUMBER, #''.join(["+1", str(contact['Number'])]),
         "toAddressMessengerType": str(contact['Type']),
         "textBody": x,
         }
