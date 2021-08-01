@@ -1,9 +1,12 @@
+from django.db.models import query
 from django.http import request
 from django.shortcuts import render
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from .serializers import SMSLeadSerializer
 from .models import SMS_Lead_Data
 from rest_framework import permissions
+from rest_framework.views import APIView
+
 from .permissions import IsOwner
 
 
@@ -24,8 +27,13 @@ class SMSLeadListAPIView(ListCreateAPIView):
 
 
 
+class ReviewQueueView(APIView):
+    serializer_class = SMSLeadSerializer
+    queryset = SMS_Lead_Data.objects.all()
+    permission_classes = (permissions.IsAuthenticated,)
 
-
+    def get(self, request):
+        return SMS_Lead_Data.objects.get(uuid=request.data)
 
 # class SMSLeadDetailAPIView(RetrieveUpdateDestroyAPIView):
 #     serializer_class = SMSLeadSerializer
