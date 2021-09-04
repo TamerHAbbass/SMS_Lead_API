@@ -413,9 +413,6 @@ def sendTexts():
             contact_uuid = update_data(q['cl_uuid'], status=0, response=0, timestamp=0, connection=connection, retainQueued=1)
 
 
-from multiprocessing import Process
-
-
 def start_sms():
 
     # cleanup()
