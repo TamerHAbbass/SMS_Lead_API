@@ -416,5 +416,5 @@ def sendTexts():
 def start_sms():
 
     # cleanup()
-    # downloadData()
+    downloadData()
     sendTexts()    
