@@ -41,5 +41,8 @@ urlpatterns = [
     
     path('sms/', include('sms_lead.urls')),
 
+    path('reporting/', include('reporting.urls')),
+
     path('', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
+
 ]

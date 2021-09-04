@@ -29,12 +29,14 @@ class UserManager(BaseUserManager):
 class User(AbstractUser):
 
     id = models.UUIDField(unique=True, primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
+    first = models.CharField(max_length=60, db_index=True)
     email = models.EmailField(max_length=254, unique=True, db_index=True)
     is_verified = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    company = models.CharField(max_length=60, db_index=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['password']

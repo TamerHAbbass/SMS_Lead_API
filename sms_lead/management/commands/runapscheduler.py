@@ -12,8 +12,7 @@ from django_apscheduler import util
 
 logger = logging.getLogger(__name__)
 
-# Currently set to run ever half hour. Modify the .5 to change execution interval. 
-RUN_TIME_HOUR = 1
+TIME_MINUTES = 60
 
 
 def main():
@@ -34,6 +33,7 @@ def delete_old_job_executions(max_age=604_800):
   """
   DjangoJobExecution.objects.delete_old_job_executions(max_age)
 
+main()
 
 class Command(BaseCommand):
   help = "Runs APScheduler."
@@ -45,7 +45,7 @@ class Command(BaseCommand):
     scheduler.add_job(
         main,
         "interval",
-        seconds=30
+        minutes=TIME_MINUTES
     )
     logger.info("Added job 'main'.")
 

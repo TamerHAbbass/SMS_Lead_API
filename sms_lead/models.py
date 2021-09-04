@@ -1,20 +1,13 @@
 from django.db import models
 import uuid
 from django.conf import settings
+from django.db.models.fields import DateTimeField
+from rest_framework import serializers
 
 class SMS_Lead_Data(models.Model):
 
-    """
-    Disable:
-
-    def ready(self):
-        from .sms_run import main
-        main()
-        
-    in apps.py before running migrations!!
-    """
-
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
+    cl_uuid = models.CharField(max_length=255, blank=True, null=True)
     Number = models.CharField(max_length=12, db_index=True)
     Type = models.CharField(max_length=20, db_index=True)
     Timezone = models.CharField(max_length=80, db_index=True)
@@ -47,5 +40,21 @@ class SMS_Lead_Data(models.Model):
     queued = models.BooleanField(default=True, db_index=True)
     
 
-    def __int__(self):
-        return self.uuid
+    class Meta:
+
+        abstract=True
+        
+
+class SMS_Queued(SMS_Lead_Data):
+    updated = models.DateTimeField(auto_now=True, verbose_name="Last Modified", db_index=True)
+
+
+class Sent_Call_List(SMS_Lead_Data):
+    updated = models.DateTimeField(auto_now=True, verbose_name="Last Modified", db_index=True)
+
+
+class SMS_Successful(SMS_Lead_Data):
+    updated = models.DateTimeField(auto_now=True, verbose_name="Last Modified", db_index=True)
+
+
+
