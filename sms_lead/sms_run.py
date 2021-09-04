@@ -250,7 +250,6 @@ def query():
     return queued
 
 
-
 def send_called_db(q):
 
     sent_call_list = Sent_Call_List()
