@@ -30,6 +30,7 @@ class User(AbstractUser):
 
     id = models.UUIDField(unique=True, primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     first = models.CharField(max_length=60, db_index=True)
+    last = models.CharField
     email = models.EmailField(max_length=254, unique=True, db_index=True)
     is_verified = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)

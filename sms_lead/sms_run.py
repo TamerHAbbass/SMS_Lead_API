@@ -11,17 +11,15 @@ import time
 from .models import SMS_Queued, Sent_Call_List, SMS_Successful
 
 
-# Timezone Execution Settings
+
 START_TIME = '06:00:00'
 END_TIME = '20:00:00'
-
-
-# SMS Char Limit Setting
 SMS_CHAR_LIMIT = 512
-
+TEST_PHONE_NUMBER = "+12799995165"
 
 def log_data(action, logname):
     # log_data will print action to screen and log in DATE log file
+    
     print(action)
     with open(f".\\logs\\{logname}_{datetime.date.today().isoformat().replace('-', '')} insertSet.log", 'a+') as f:
         f.write(str(datetime.datetime.now()) + f": {action}..." + '\n')
@@ -45,6 +43,7 @@ def connect_to_purecloud():
 def grab_lead_data(apiclient):
     # Temp
     log_data('Grabbing Lead Data', 'SMS_RUN_APP')
+    apiclient = PureCloudPlatformClientV2.api_client.ApiClient().get_client_credentials_token("", "")
     zillow_list_id = "215b5365-0fcd-4ce4-8ac9-7f2f18eb5a1d"
     
     try:
@@ -72,7 +71,6 @@ def download_data(req):
 
 
 def checking_timezonez_in_range(startTime, endTime, timezone):
-
     log_data('Verifying Timezone Within Range', 'SMS_RUN_APP')
 
     try:
@@ -88,10 +86,10 @@ def checking_timezonez_in_range(startTime, endTime, timezone):
         time_in_zone = datetime.datetime.strptime(IST.strftime('%T'), "%H:%M:%S").time()
 
         if startTime < endTime: 
-            log_data('Timezone Within Range', 'SMS_RUN_APP')
+            log_data(f"Timezone Within Range: \n\t{timezone}: {time_in_zone >= startTime and time_in_zone <= endTime}", 'SMS_RUN_APP')
             return time_in_zone >= startTime and time_in_zone <= endTime 
         else: 
-            log_data('Timezone Within Range', 'SMS_RUN_APP')
+            log_data(f"Timezone Within Range: \n\t{timezone}: {time_in_zone >= startTime and time_in_zone <= endTime}", 'SMS_RUN_APP')
             #Over midnight: 
             return time_in_zone >= startTime or time_in_zone <= endTime 
     except:
@@ -99,7 +97,6 @@ def checking_timezonez_in_range(startTime, endTime, timezone):
 
 
 def parse_data(row):
-
     log_data('Parsing Data', 'SMS_RUN_APP')
     sms = {}
     message = {}
@@ -118,20 +115,21 @@ def agentless_sms(apiclient, data):
     # # Create Outbound Api Client
     api_instance = PureCloudPlatformClientV2.ConversationsApi(apiclient)
     body = PureCloudPlatformClientV2.SendAgentlessOutboundMessageRequest()
-    try:    
-        api_response = api_instance.post_conversations_messages_agentless(data)
-        json_api_response = json.loads(api_response.to_json())
-        log_data(f"SMS - Sent:\n\t{data} - {api_response}", "Sent_SMS")
-        return json_api_response['conversation_id'], json_api_response['timestamp'] 
-
+    try:
+        if data['toAddress'] == '+19157607485':
+            return 0,0
+        else:
+            api_response = api_instance.post_conversations_messages_agentless(data)
+            json_api_response = json.loads(api_response.to_json())
+            log_data(f"SMS - Sent:\n\t{data} - {api_response}", "Sent_SMS")
+            return json_api_response['conversation_id'], json_api_response['timestamp'] 
     except:
         failed_record = {str(400):data}
-        log_data(f"SMS - Failed:\n\t{data} - {api_response}", "Failed_SMS")
+        log_data(f"SMS - Failed:\n\t{failed_record}", "Failed_SMS")
         return 0, 0
 
 
 def char_count(message):
-
     log_data('Checking Char Count', 'SMS_RUN_APP')
     message_segments = []
     a_string = message
@@ -141,7 +139,6 @@ def char_count(message):
 
 
 def compose_sms(contact):
-
     log_data('Composing Message', 'SMS_RUN_APP')
     sms_messages = []
     sms_message = []
@@ -163,13 +160,11 @@ def compose_sms(contact):
 
 
 def check_status_of_sent_sms(apiclient, uuid):
-
     api_instance = PureCloudPlatformClientV2.ConversationsApi(apiclient)
     body = PureCloudPlatformClientV2.SendAgentlessOutboundMessageRequest()
-    status = json.loads(api_instance.get_conversations_message(uuid).to_json())
     check = 0
-
     try:
+        status = json.loads(api_instance.get_conversations_message(uuid).to_json())
         check = status['participants'][0]['messages'][0]['message_status']
         if check == 'sent':
             return 1
@@ -178,20 +173,17 @@ def check_status_of_sent_sms(apiclient, uuid):
         
     except Exception as e:
         log_data(f"Failed - {uuid}", "Verify_Sent_SMS")
-        print('check', check)
         return 0
 
 
 
 def delete_contact_from_purecloud_list(apiclient, zillow_list_id, contact_uuid):
-
     api_instance = PureCloudPlatformClientV2.ConversationsApi(apiclient)
     body = PureCloudPlatformClientV2.SendAgentlessOutboundMessageRequest()
     response = api_instance.delete_outbound_contactlist_contacts(zillow_list_id, contact_uuid)
 
 
 def check_contact_record_in_db(contact):
-
     queryset = SMS_Successful.objects.all()
     queryset_2 = Sent_Call_List.objects.all()
     queryset_3 = SMS_Queued.objects.all()
@@ -201,9 +193,7 @@ def check_contact_record_in_db(contact):
     results_sq = queryset_3.filter(cl_uuid=contact['inin-outbound-id'])
 
     if len(results_ss) + len(results_scl) + len(results_sq) > 0 :
-        print('DUPLICATE FOUND ', results_ss, results_scl, results_sq)
         return 1
-    print('Not in Table 1')
     return 0
 
 
@@ -244,10 +234,10 @@ def save_data(row, index, response='', status=''):
 
 
 def query():
-    
     queryset = SMS_Queued.objects.all()
     queued = queryset.filter(queued=1).values('cl_uuid', 'First', 'Number', 'Type', 'Timezone', 'SMSMessage1')
     return queued
+
 
 
 def send_called_db(q):
@@ -271,6 +261,8 @@ def send_called_db(q):
     q.delete()
 
 def send_successful_db(uuid, q):
+    # if not len(q) == 0:
+    #     q = q[0]
 
     sms_successful= SMS_Successful()
 
@@ -289,10 +281,10 @@ def send_successful_db(uuid, q):
     sms_successful.SMSMessage1 = q.SMSMessage1
     sms_successful.save()
     q.delete()
-    
+
+
 
 def send_contact_to_caller_list(contact_uuid, connection):
-
     queryset = SMS_Queued.objects.all()
     q = queryset.filter(cl_uuid=contact_uuid)
     q = q[0]
@@ -318,36 +310,35 @@ def send_contact_to_caller_list(contact_uuid, connection):
         send_called_db(q)
         api_instance = PureCloudPlatformClientV2.OutboundApi(connection)
         api_response = api_instance.post_outbound_contactlist_contacts('88d6cd5f-28cb-42a4-9725-ea39c06892a5', body)
-        print('api response', api_response)
         return 1
     except:
         log_data(f'Failed To Send To Caller List - {body}', 'Caller_List_Send')
         return 0
 
-
 def update_data(contact_uuid, status, response, timestamp, connection, retainQueued):
-
-    print('status', status)
     # try:
-    print(contact_uuid)
     queryset = SMS_Queued.objects.all()
     q = queryset.filter(cl_uuid=contact_uuid)
-    if len(q) > 1:
-        q[1].delete()
-    if retainQueued:
-        pass
-    elif status == 0:
-        send_contact_to_caller_list(contact_uuid, connection)
-    elif status == 1:
-        send_successful_db(contact_uuid, q[0])
-    return 1
-    # except:
-    #     pass
+    if not len(q) == 0:
+        q = q[0]
 
+        if retainQueued:
+            pass
+        elif status == 0:
+            send_contact_to_caller_list(contact_uuid, connection)
+        elif status == 1:
+            send_successful_db(contact_uuid, q)
+        return 1
+        # except:
+        #     pass
+    elif len(q) > 1:
+        for i in q[1:]:
+            i.delete()
 
 def cleanup():
 
-    from . import models
+    from . import models    
+
     # queryset = models.SMS_Successful.objects.all()
     queryset = models.SMS_Queued.objects.all()
     # queryset3 = models.Sent_Call_List.objects.all()
@@ -360,7 +351,7 @@ def cleanup():
         q_list.append(c.replace('\n', ''))
 
     for count, query in enumerate(q_list):
-        print(f"count: {count} Total: {len(q_list)}")
+    # if query == 'dcf5393dabd24222ab371dbd504254f0':
         q = queryset.filter(cl_uuid=query)
    
         if len(q) > 1:
@@ -372,7 +363,6 @@ def cleanup():
 
 
 def downloadData():
-
     log_data('Starting Run', 'SMS_RUN_APP')
     connection = connect_to_purecloud()
     uri = grab_lead_data(connection)
@@ -384,14 +374,11 @@ def downloadData():
                 pass
                 #delete_contact_from_purecloud_list(os.environ.get['Tricon_Zillow_Contact_ID'], contact_uuid)
 
-
 def sendTexts():
-
     connection = connect_to_purecloud()
     queued = query()
     for count, q in enumerate(queued):
-        print(f"{count}/{len(queued)}")
-        time.sleep(.75)
+        time.sleep(.05)
         if checking_timezonez_in_range(START_TIME, END_TIME, q['Timezone']):
             q['in_range'] = True
 
@@ -400,21 +387,18 @@ def sendTexts():
 
             response = ''
             status = ''
-
             for message in composed_message:
                 response, timestamp = agentless_sms(connection, message)
-                time.sleep(5)
-                print(response)
+                time.sleep(2)
                 status = check_status_of_sent_sms(connection, response)
                 log_data(f"Checking SMS Status: UUID: {q['cl_uuid']} - Status: {status} = Response: {response} = Timestamp: {timestamp}", 'SMS_RUN_APP')
-            print('statuss', status)
             contact_uuid = update_data(q['cl_uuid'], status, response, timestamp, connection, retainQueued=0)
         else:
             contact_uuid = update_data(q['cl_uuid'], status=0, response=0, timestamp=0, connection=connection, retainQueued=1)
 
 
 def start_sms():
-
     # cleanup()
-    downloadData()
-    sendTexts()    
+    # downloadData()
+    sendTexts()
+    
