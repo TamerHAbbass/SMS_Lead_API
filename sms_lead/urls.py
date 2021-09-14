@@ -1,9 +1,8 @@
 from django.urls import path
 from django.conf.urls import url
-# from .views import SMSLeadListAPIView
+from .views import CreateCampaign
 
 
 urlpatterns = [
-    # path('', SMSLeadListAPIView.as_view()),
-    # path(r'<int:uuid>', SMSLeadDetailAPIView.as_view()),
+    path('create-campaign/', CreateCampaign.as_view()),
 ]

@@ -1,0 +1,49 @@
+{% extends 'reporting/main.html' %}
+
+{% block content %}
+
+
+<form action="" id='datetimeform' method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="OK">
+</form>
+
+<div class="container" id="report-div">
+<table class="table table-striped">
+    <thead class="undefined sticky-header">
+        <tr>
+        <th scope="col">Index</th>
+        <th scope="col">UUID</th>
+        <th scope="col">Name</th>
+        <th scope="col">Property ID</th>
+        <th scope="col">Sent</th>
+        </tr>
+    </thead>
+
+{% for i in data  %}
+    <tbody>
+    <tr>
+    <th scope="row">{{ forloop.counter }}</th>
+    <td>{{ i.cl_uuid }}</td>
+    <td>{{ i.First }} {{ i.Last }}</td>
+    <td>{{ i.PropertyID }}</td>
+    <td>{{ i.updated }}</td>
+    <td></td>
+    </tr>
+</tbody>
+    
+</div>
+    
+
+    {% endfor %}
+    </div>
+    </table>
+{% endblock %}
+
+
+
+
+
+
+

@@ -117,7 +117,7 @@ SIMPLE_JWT = {
 DATABASES = {
     'default': {
         'ENGINE': 'sql_server.pyodbc',
-        'NAME': 'sms_lead',
+        'NAME': 'sms_lead3',
         'HOST': 'SOS-9161122',
         'PORT': '',
         'OPTIONS': {

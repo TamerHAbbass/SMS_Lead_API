@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SMS Campaign Reporting</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ" crossorigin="anonymous"></script>
+    </head>
+
+    <body>
+        <nav>
+            <header class="pageHeader noHero white">
+                <svg id="tricon_logo" viewBox="0 0 136 48">
+                    <path id="Path_1" d="M5.33 9.5L0 12.24v18.28h5.33z"></path>
+                    <path id="Path_2" d="M14.55 4.75L9.22 7.49v23h5.33z"></path>
+                    <path id="Path_3" d="M18.43 2.75v27.77h5.33V0z"></path>
+                    <path id="Path_4" d="M29.22 18.94h6.59v11.59h4V18.94h6.59v-3.68H29.22z"></path>
+                    <path id="Path_5" d="M66.07 30.52v-4.45a3.48 3.48 0 00-.83-2.41 3.52 3.52 0 001-2.54v-1.06c0-2.89-.93-4.81-5.48-4.81H49.21v15.27h4v-5.15h7.49c1.42 0 1.46.12 1.46 1.17v4zm-5.51-8.83h-7.33v-2.75h6.9c2.1 0 2.1.22 2.1.8v1.19c0 .42 0 .76-1.68.76z"></path>
+                    <path id="Rectangle_1" d="M69.75 15.29h4.01v15.23h-4.01z"></path>
+                    <path id="Path_6" d="M114.5 21c0-2.58-.6-6-5.76-6h-7c-5.17 0-5.77 3.42-5.77 6v3.56c0 2.58.6 6 5.77 6h7c5.16 0 5.76-3.43 5.76-6zm-4 4.23c0 1.13-.28 1.64-1.93 1.64h-6.67c-1.66 0-1.94-.51-1.94-1.64v-4.9c0-1.13.28-1.64 1.94-1.64h6.67c1.65 0 1.93.51 1.93 1.64z" class="cls-3" data-name="Path 6"></path>
+                    <path id="Path_7" d="M132 15.25v9.93l-10.35-9.93h-4.2v15.27h4V20.6l10.35 9.92h4.2V15.25z"></path>
+                    <path id="Path_8" d="M82.82 30.52h10.37v-3.69H83c-1.65 0-1.93-.51-1.93-1.64v-4.9c0-1.13.28-1.64 1.93-1.64h10.19V15H82.82c-5.16 0-5.76 3.42-5.76 6v3.56c0 2.53.59 5.96 5.76 5.96z"></path>
+                    <path id="Path_9" d="M131.88 38l-2.07 1v8.8H136V46h-4.11z"></path>
+                    <path id="Path_10" d="M118.11 38.09l-3.76 9.74h2.28l.61-1.68h4.35l.61 1.68h2.27l-3.76-9.74zm-.32 6.26l1.62-4.47 1.59 4.47z"></path>
+                    <path id="Path_11" d="M106.59 47.83h2.08V38l-2.08 1z"></path>
+                    <path id="Path_12" d="M93.19 39.91H96v7.91h2.08v-7.91H101v-1.82h-7.81z"></path>
+                    <path id="Path_13" d="M84.87 44.39l-4.51-6.3h-2.13v9.73h2.08v-6.54L85 47.82h2v-9.73h-2.12z"></path>
+                    <path id="Path_14" d="M64.66 47.82h6.89V46h-4.82v-2.24h4.71V42h-4.71v-2.13h4.82v-1.78h-6.9z"></path>
+                    <path id="Path_15" d="M53.92 38.09h-3.84v9.74h3.84c3.06 0 5.17-1.93 5.17-4.87s-2.09-4.87-5.17-4.87zm0 7.91h-1.76v-6.09h1.76A2.86 2.86 0 0157 42.54 3.29 3.29 0 0154.19 46z"></path>
+                    <path id="Path_16" d="M40.9 47.83H43V38l-2.1 1z"></path>
+                    <path id="Path_17" d="M31 41.87c-1.12-.26-1.94-.47-1.94-1.13s.5-1 1.43-1a4.16 4.16 0 012.79 1.07l1.15-1.52a5.4 5.4 0 00-3.8-1.36c-2.29 0-3.69 1.31-3.69 2.94 0 2.17 2.05 2.61 3.64 3 1.12.26 2 .51 2 1.24 0 .55-.56 1.09-1.7 1.09a4.26 4.26 0 01-3.1-1.31l-1.13 1.57A5.59 5.59 0 0030.76 48c2.63 0 3.9-1.34 3.9-3.12 0-2.17-2.04-2.65-3.66-3.01z"></path>
+                    <path id="Path_18" d="M14.09 47.82H21V46h-4.83v-2.24h4.71V42h-4.71v-2.13H21v-1.78h-6.9z"></path>
+                    <path id="Path_19" d="M7.83 41.23a3 3 0 00-2.92-3.15 2 2 0 00-.35 0H0v9.74h2.08v-3.48h1.51l1.92 3.49h2.38L5.7 44.12a2.81 2.81 0 002.13-2.89zm-3.58 1.32H2.08v-2.68h2.17a1.34 1.34 0 11.22 2.68.81.81 0 01-.22 0z"></path>
+                </svg>
+            </header>
+        </nav>
+
+
+        <div id="controls">
+
+        </div>
+
+        {% block content %}
+        {% endblock %}
+        
+
+
+
+    </body>
+</html>
+
+<style>
+
+body {
+    margin: 0;
+}
+
+
+#tricon_logo {
+    display: block;
+    padding-top: 1%;
+    width: 7%;
+    height: 7%;
+    margin: auto;
+}
+
+.accordion-button {
+    padding: 0;
+    height: 50%;
+    margin: 0;
+}
+
+
+#table-column-header-start {
+    border: 2px solid black;
+}
+#table-column-header {
+    border: 2px solid black;
+    border-left: white;
+
+}
+
+#row-item {
+    border-left: 2px solid black;
+}
+
+
+nav {
+    width: 100%;
+    height: 90px;
+    outline: 1px solid lightgrey;
+    
+ }
+
+#report-div {
+    overflow-y: scroll;
+    border: 2px solid black;
+    position: fixed;
+    top: 150px;
+    right: 5%;
+    width: 100%;
+    bottom: 5%;
+    padding: 1%;
+}
+
+
+#report-item-div {
+    background-color: #e3e3e3;
+    border: 2px solid black;
+    border-bottom: white;
+    padding: .25%;
+
+}
+
+thead {
+    text-align: center;
+}
+
+.tab {
+    display: inline-block;
+    margin-left: 100px;
+}
+
+#controls {
+    position: fixed;
+    bottom: 5%;
+    top: 150px;
+    width: 15%;
+    left: 5%;
+    background-color: lightgrey;
+}
+
+#datetimeform {
+    position: fixed;
+    right: 5%;
+    margin: 1%;
+}
+
+.vertical {
+    border-left: 6px solid black;
+    height: 200px;
+    position:absolute;
+    left: 50%;
+}
+</style>

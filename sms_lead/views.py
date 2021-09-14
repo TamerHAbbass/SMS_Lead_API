@@ -1,51 +1,28 @@
-# from django.db.models import query
-# from django.http import request
-# from django.shortcuts import render
-# from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-# from .serializers import SMSLeadSerializer
-# from .models import SMS_Lead_Data
-# from rest_framework import permissions
-# from rest_framework.views import APIView
+from django.http.response import HttpResponse
+from django.shortcuts import render, HttpResponse
+from django.views import generic
 
-# from .permissions import IsOwner
+from sms_lead.models import Sent_Call_List, SMS_Successful, Campaign
+import datetime
 
 
-# class SMSLeadListAPIView(ListCreateAPIView):
-#     serializer_class = SMSLeadSerializer
-#     queryset = ''
-#     permission_classes = (permissions.IsAuthenticated,)
+class CreateCampaign(generic.View):
 
+    def post(self, request):
+        print(dir(request))
+        c = Campaign()
+        c.name = request.data['name']
+        c.Call_List_ID = request.data['Call_List_ID']
+        c.zillow_list_id = request.data['zillow_list_id']
+        c.start = request.data['start']
+        c.end = request.data['end']
+        c.freaquency_seconds = request.data['freaquency_seconds']
+        c.freaquency_minutes = request.data['freaquency_minutes']
+        c.freaquency_hours = request.data['freaquency_hours']
+        c.download_freaquency_minutes = request.data['download_freaquency_minutes']
+        c.purecloud_client_id = request.data['purecloud_client_id']
+        c.purecloud_client_secret = request.data['purecloud_client_secret']
+        c.save()
 
-#     def perform_create(self, serializer):
-    
-#         serializer.save(owner=self.request.user)
+        return c.uuid
 
-
-#     def get_queryset(self):
-#         return self.queryset.filter(owner=self.request.user)
-
-
-# class ReviewQueueView(APIView):
-#     serializer_class = SMSLeadSerializer
-#     queryset = '' #SMS_Lead_Data.objects.all()
-#     permission_classes = (permissions.IsAuthenticated,)
-
-#     def get(self, request):
-#         return 1 #SMS_Lead_Data.objects.get(uuid=request.data)
-
-
-# # class SMSLeadDetailAPIView(RetrieveUpdateDestroyAPIView):
-# #     serializer_class = SMSLeadSerializer
-# #     permission_classes = (permissions.IsAuthenticated, IsOwner)
-# #     queryset = SMS_Lead_Data.objects.all()
-# #     lookup_field = "uuid"
-
-
-# #     def perform_create(self, serializer):
-# #         return serializer.save(owner=self.request.data)
-
-    
-# #     def get_queryset(self):
-# #         print(self.request.data)
-# #         print('hi')
-# #         return self.queryset.filter(owner=self.request.user)

@@ -8,17 +8,16 @@ import PureCloudPlatformClientV2
 import requests
 import pytz
 import time
-from .models import SMS_Queued, Sent_Call_List, SMS_Successful
+from .models import Campaign, SMS_Queued, Sent_Call_List, SMS_Successful
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 
-
-START_TIME = '06:00:00'
-END_TIME = '20:00:00'
 SMS_CHAR_LIMIT = 512
-TEST_PHONE_NUMBER = "+12799995165"
+
 
 def log_data(action, logname):
-    # log_data will print action to screen and log in DATE log file
+
+    # log_data will print action to screen and write to log file
     
     print(action)
     with open(f".\\logs\\{logname}_{datetime.date.today().isoformat().replace('-', '')} insertSet.log", 'a+') as f:
@@ -26,7 +25,7 @@ def log_data(action, logname):
         return 1
 
 
-def connect_to_purecloud():
+def connect_to_purecloud(client_id, client_secret):
     log_data('Connecting to PureCloud', 'SMS_RUN_APP')
     # Set Purecloud region
     region = PureCloudPlatformClientV2.PureCloudRegionHosts.us_west_2
@@ -35,25 +34,24 @@ def connect_to_purecloud():
     PureCloudPlatformClientV2.configuration.host = region.get_api_host()
 
     # Create API Client and get client credentials with client ID and key
-    apiclient = PureCloudPlatformClientV2.api_client.ApiClient().get_client_credentials_token("", "")
+    apiclient = PureCloudPlatformClientV2.api_client.ApiClient().get_client_credentials_token(client_id, client_secret)
 
     return apiclient
 
 
-def grab_lead_data(apiclient):
-    # Temp
+def grab_lead_data(apiclient, contact_list_id):
+
     log_data('Grabbing Lead Data', 'SMS_RUN_APP')
-    apiclient = PureCloudPlatformClientV2.api_client.ApiClient().get_client_credentials_token("", "")
-    zillow_list_id = "215b5365-0fcd-4ce4-8ac9-7f2f18eb5a1d"
-    
+    zillow_list_id = contact_list_id
+
     try:
         api_instance = PureCloudPlatformClientV2.OutboundApi(apiclient)
         api_instance.post_outbound_contactlist_export(zillow_list_id)
-        time.sleep(5)
-        
+        time.sleep(60)
+
         # Grab Zillow_Master download URI
         exporturi = api_instance.get_outbound_contactlist_export(zillow_list_id).to_dict()
-        
+
         # Grab CSV content by providing the download uri with authorization header
         req = requests.get(exporturi['uri'], headers={'authorization': f'Bearer {apiclient.access_token}'}).text
         log_data('Lead Data Extraction Successful', 'SMS_RUN_APP')
@@ -119,7 +117,7 @@ def agentless_sms(apiclient, data):
         if data['toAddress'] == '+19157607485':
             return 0,0
         else:
-            api_response = api_instance.post_conversations_messages_agentless(data)
+            #api_response = api_instance.post_conversations_messages_agentless(data)
             json_api_response = json.loads(api_response.to_json())
             log_data(f"SMS - Sent:\n\t{data} - {api_response}", "Sent_SMS")
             return json_api_response['conversation_id'], json_api_response['timestamp'] 
@@ -176,28 +174,25 @@ def check_status_of_sent_sms(apiclient, uuid):
         return 0
 
 
-
 def delete_contact_from_purecloud_list(apiclient, zillow_list_id, contact_uuid):
     api_instance = PureCloudPlatformClientV2.ConversationsApi(apiclient)
     body = PureCloudPlatformClientV2.SendAgentlessOutboundMessageRequest()
     response = api_instance.delete_outbound_contactlist_contacts(zillow_list_id, contact_uuid)
 
 
-def check_contact_record_in_db(contact):
-    queryset = SMS_Successful.objects.all()
-    queryset_2 = Sent_Call_List.objects.all()
-    queryset_3 = SMS_Queued.objects.all()
+def check_contact_record_in_db(contact, cl_uuid):
+    queryset = SMS_Successful.objects.filter(cl_uuid=cl_uuid, )
+    queryset_2 = Sent_Call_List.objects.filter(cl_uuid=cl_uuid, )
+    queryset_3 = SMS_Queued.objects.filter(cl_uuid=cl_uuid, )
 
-    results_ss = queryset.filter(cl_uuid=contact['inin-outbound-id'])
-    results_scl = queryset_2.filter(cl_uuid=contact['inin-outbound-id'])
-    results_sq = queryset_3.filter(cl_uuid=contact['inin-outbound-id'])
-
-    if len(results_ss) + len(results_scl) + len(results_sq) > 0 :
+    print(len(queryset) + len(queryset_2) + len(queryset_3))
+    if len(queryset) + len(queryset_2) + len(queryset_3) > 0 :
+        print('Contact already in DB')
         return 1
     return 0
 
 
-def save_data(row, index, response='', status=''):
+def save_data(row, index, campaign_uuid, response='', status=''):
 
     sms_model = SMS_Queued()
 
@@ -205,45 +200,43 @@ def save_data(row, index, response='', status=''):
     df = pandas.DataFrame(row)
     df = df.fillna(0).to_dict()[index]
 
-    record = check_contact_record_in_db(df)
+    record = check_contact_record_in_db(df, df['inin-outbound-id'])
 
-    if record == 0:
-        log_data(f"Saving Contact To DB: {df['inin-outbound-id']} - {df['First']} {df['Last']} - {df['Number']} - {df['Timezone']} - {df['PropertyID']} - {df['SMSMessage1']}", 'SMS_RUN_APP')
-        sms_model.cl_uuid = df['inin-outbound-id']
-        sms_model.Number = df['Number']
-        sms_model.Type = df['Type']
-        sms_model.Timezone = df['Timezone']
-        sms_model.First = df['First']
-        sms_model.Last = df['Last']
-        sms_model.Address = df['Address']
-        sms_model.City = df['City']
-        sms_model.State = df['State']
-        sms_model.Zip = df['Zip']
-        sms_model.PropertyID = df['PropertyID']
-        sms_model.UploadDate = df['UploadDate']
-        sms_model.SMSMessage1 = df['SMSMessage1']
-        # sms_model.SMSMessage2 = df['SMSMessage2']
-        # sms_model.SMSMessage3 = df['SMSMessage3']
-        # sms_model.SMSMessage4 = df['SMSMessage4']
-        sms_model.queued = 1
-        sms_model.save()
-
-        return df['inin-outbound-id']
-    else:
+    if record:
         return 0
 
+    log_data(f"Saving Contact To DB: {df['inin-outbound-id']} - {df['First']} {df['Last']} - {df['Number']} - {df['Timezone']} - {df['PropertyID']} - {df['SMSMessage1']}", 'SMS_RUN_APP')
+    sms_model.cl_uuid = df['inin-outbound-id']
+    sms_model.Number = df['Number']
+    sms_model.campaign = campaign_uuid
+    sms_model.Type = df['Type']
+    sms_model.Timezone = df['Timezone']
+    sms_model.First = df['First']
+    sms_model.Last = df['Last']
+    sms_model.Address = df['Address']
+    sms_model.City = df['City']
+    sms_model.State = df['State']
+    sms_model.Zip = df['Zip']
+    sms_model.PropertyID = df['PropertyID']
+    sms_model.SMSMessage1 = df['SMSMessage1']
+    sms_model.queued = 1
+    sms_model.save()
 
-def query():
+    return df['inin-outbound-id']
+
+
+
+def query(campaign_uuid):
     queryset = SMS_Queued.objects.all()
-    queued = queryset.filter(queued=1).values('cl_uuid', 'First', 'Number', 'Type', 'Timezone', 'SMSMessage1')
+    queued = queryset.filter(campaign=campaign_uuid, queued=1).values('cl_uuid', 'First', 'Number', 'Type', 'Timezone', 'SMSMessage1')
     return queued
-
 
 
 def send_called_db(q):
 
     sent_call_list = Sent_Call_List()
 
+    sent_call_list.campaign = q.campaign
     sent_call_list.cl_uuid = q.cl_uuid
     sent_call_list.Number = q.Number
     sent_call_list.Type = q.Type
@@ -260,12 +253,14 @@ def send_called_db(q):
     sent_call_list.save()
     q.delete()
 
+
 def send_successful_db(uuid, q):
     # if not len(q) == 0:
     #     q = q[0]
 
     sms_successful= SMS_Successful()
 
+    sms_successful.campaign = q.campaign
     sms_successful.cl_uuid = q.cl_uuid
     sms_successful.Number = q.Number
     sms_successful.Type = q.Type
@@ -283,14 +278,13 @@ def send_successful_db(uuid, q):
     q.delete()
 
 
-
-def send_contact_to_caller_list(contact_uuid, connection):
+def send_contact_to_caller_list(contact_uuid, connection, campaign_uuid, contact_list_id):
     queryset = SMS_Queued.objects.all()
-    q = queryset.filter(cl_uuid=contact_uuid)
+    q = queryset.filter(campaign=campaign_uuid, cl_uuid=contact_uuid)
     q = q[0]
     body = [{
         "id": "",
-        "contact_list_id": "88d6cd5f-28cb-42a4-9725-ea39c06892a5", 
+        "contact_list_id": contact_list_id, 
         'data': {
             'Number': q.Number,
             'Type': q.Type,
@@ -315,17 +309,18 @@ def send_contact_to_caller_list(contact_uuid, connection):
         log_data(f'Failed To Send To Caller List - {body}', 'Caller_List_Send')
         return 0
 
-def update_data(contact_uuid, status, response, timestamp, connection, retainQueued):
+
+def update_data(contact_uuid, status, response, timestamp, contact_list_id, connection, campaign_uuid, retainQueued):
     # try:
     queryset = SMS_Queued.objects.all()
-    q = queryset.filter(cl_uuid=contact_uuid)
+    q = queryset.filter(campaign=campaign_uuid, cl_uuid=contact_uuid)
     if not len(q) == 0:
         q = q[0]
 
         if retainQueued:
             pass
         elif status == 0:
-            send_contact_to_caller_list(contact_uuid, connection)
+            send_contact_to_caller_list(contact_uuid, connection, campaign_uuid, contact_list_id)
         elif status == 1:
             send_successful_db(contact_uuid, q)
         return 1
@@ -335,7 +330,8 @@ def update_data(contact_uuid, status, response, timestamp, connection, retainQue
         for i in q[1:]:
             i.delete()
 
-def cleanup():
+
+def cleanup(campaign_uuid):
 
     from . import models    
 
@@ -351,8 +347,7 @@ def cleanup():
         q_list.append(c.replace('\n', ''))
 
     for count, query in enumerate(q_list):
-    # if query == 'dcf5393dabd24222ab371dbd504254f0':
-        q = queryset.filter(cl_uuid=query)
+        q = queryset.filter(campaign=campaign_uuid, cl_uuid=query)
    
         if len(q) > 1:
             for count, i in enumerate(q):
@@ -362,25 +357,25 @@ def cleanup():
                     i.delete()
 
 
-def downloadData():
+def downloadData(zillow_list_id, connection, campaign_uuid):
     log_data('Starting Run', 'SMS_RUN_APP')
-    connection = connect_to_purecloud()
-    uri = grab_lead_data(connection)
+    uri = grab_lead_data(connection, zillow_list_id)
     if uri:
         data = download_data(uri)
         for count, (index, row) in enumerate(data.iterrows()):
-            contact_uuid = save_data(row, count)
+            contact_uuid = save_data(row, count, campaign_uuid)
             if contact_uuid:
                 pass
                 #delete_contact_from_purecloud_list(os.environ.get['Tricon_Zillow_Contact_ID'], contact_uuid)
 
-def sendTexts():
-    connection = connect_to_purecloud()
-    queued = query()
+
+def sendTexts(campaign_uuid, contact_list_id, startTime, endTime, connection):
+    queued = query(campaign_uuid)
     for count, q in enumerate(queued):
         time.sleep(.05)
-        if checking_timezonez_in_range(START_TIME, END_TIME, q['Timezone']):
+        if checking_timezonez_in_range(startTime, endTime, q['Timezone']):
             q['in_range'] = True
+            print('In range')
 
             parsed_Data = parse_data(q)
             composed_message = compose_sms(parsed_Data)
@@ -392,13 +387,27 @@ def sendTexts():
                 time.sleep(2)
                 status = check_status_of_sent_sms(connection, response)
                 log_data(f"Checking SMS Status: UUID: {q['cl_uuid']} - Status: {status} = Response: {response} = Timestamp: {timestamp}", 'SMS_RUN_APP')
-            contact_uuid = update_data(q['cl_uuid'], status, response, timestamp, connection, retainQueued=0)
+            contact_uuid = update_data(q['cl_uuid'], status, response, timestamp, contact_list_id, connection, campaign_uuid, retainQueued=0)
         else:
-            contact_uuid = update_data(q['cl_uuid'], status=0, response=0, timestamp=0, connection=connection, retainQueued=1)
+            print('Not in range')
+            contact_uuid = update_data(q['cl_uuid'], contact_list_id=contact_list_id, campaign_uuid=campaign_uuid, status=0, response=0, timestamp=0, connection=connection, retainQueued=1)
 
 
-def start_sms():
-    # cleanup()
-    # downloadData()
-    sendTexts()
-    
+class run():
+
+    def __init__(self, event):
+        print(event.job_id)
+        campaign_uuid = event.job_id
+
+        campaign_model = Campaign.objects.filter(send_texts_scheduler_uuid=campaign_uuid).values()[0]
+
+        self.campaign_model = campaign_model
+        self.Call_List_ID = campaign_model['Call_List_ID']
+        self.zillow_list_id = campaign_model['zillow_list_id']
+        self.startTime = campaign_model['start']
+        self.endTime = campaign_model['end']
+
+        connection = connect_to_purecloud(campaign_model['purecloud_client_id'], campaign_model['purecloud_client_secret'])
+
+        downloadData(self.zillow_list_id, connection, campaign_uuid)
+        sendTexts(campaign_uuid, self.Call_List_ID, self.startTime, self.endTime, connection)
