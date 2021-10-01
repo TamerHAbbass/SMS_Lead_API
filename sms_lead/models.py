@@ -13,7 +13,8 @@ class Campaign(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     name = models.CharField(max_length=254, null=True, db_index=True)
-    Call_List_ID = models.CharField(max_length=254, null=True, db_index=True)
+    number = models.CharField(max_length=254, null=True, blank=True, db_index=True)
+    Call_List_ID = models.CharField(max_length=254, null=True, blank=True, db_index=True)
     zillow_list_id = models.CharField(max_length=254, null=True, db_index=True)
     start = models.CharField(max_length=254, null=True, db_index=True)
     end = models.CharField(max_length=254, null=True, db_index=True)
@@ -108,7 +109,7 @@ class DjangoJob(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     name = models.CharField(max_length=254, db_index=True)
-    campaign = models.ForeignKey(to=Campaign, on_delete=models.CASCADE, null=True, blank=True)
+    # campaign = models.ForeignKey(to=Campaign, on_delete=models.CASCADE, null=True, blank=True)
     next_run_time = models.DateTimeField(
         db_index=True,
         blank=True,

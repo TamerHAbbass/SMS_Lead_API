@@ -9,6 +9,7 @@ from django.core.management.base import BaseCommand
 from sms_lead.management.commands.jobstores import DjangoJobStore
 from sms_lead.models import DjangoJobExecution
 from sms_lead.management.commands import util
+from reporting.generate_report import generate, generate_2
 
 logger = logging.getLogger(__name__)
 
@@ -53,22 +54,29 @@ class Command(BaseCommand):
     #   )
     #   logger.info("Added job 'sendTexts'.")
                 
-    #   scheduler.add_job(
-    #         run,
-    #         trigger = 'interval',
-	# 		minutes = .5,
-	# 		max_instances = 1,
-	# 		coalesce = True
-    #     )
+      # scheduler.add_job(
+      #       run,
+      #       trigger = 'interval',
+      #       seconds = 10,
+      #       max_instances = 1,
+      #       coalesce = True
+      #   )
       
-    #   scheduler.add_job(
-    #         run,
-    #         trigger = 'interval',
-	# 		minutes = 10,
-	# 		max_instances = 1,
-	# 		coalesce = True
-    #     )
+      # scheduler.add_job(
+      #       run,
+      #       trigger = 'interval',
+      #       hours = 24,
+      #       max_instances = 1,
+      #       coalesce = True
+      #   )
 
+      # scheduler.add_job(
+      #       run,
+      #       trigger = 'interval',
+      #       seconds = 30,
+      #       max_instances = 1,
+      #       coalesce = True
+      #   )        
 
     #   logger.info("Added job 'sendTexts'.")
 

@@ -117,12 +117,14 @@ SIMPLE_JWT = {
 DATABASES = {
     'default': {
         'ENGINE': 'sql_server.pyodbc',
-        'NAME': 'sms_lead3',
-        'HOST': 'SOS-9161122',
+        'NAME': 'sms_leads',
+        'USER': 'sa_tabbass',
+        'PASSWORD': 'S0S$tah!',
+        'HOST': 'Cloud1-API',
         'PORT': '',
         'OPTIONS': {
             'driver': 'ODBC Driver 17 for SQL Server',
-        },
+        }
     }
 }
 

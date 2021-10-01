@@ -99,6 +99,7 @@ def parse_data(row):
     sms = {}
     message = {}
     # row = handle_nan(row_na)
+    print(type(row))
     for r, l in row.items():
         if re.findall(r'^smsmessage', r.lower()):
             message[r] = l
@@ -114,13 +115,10 @@ def agentless_sms(apiclient, data):
     api_instance = PureCloudPlatformClientV2.ConversationsApi(apiclient)
     body = PureCloudPlatformClientV2.SendAgentlessOutboundMessageRequest()
     try:
-        if data['toAddress'] == '+19157607485':
-            return 0,0
-        else:
-            #api_response = api_instance.post_conversations_messages_agentless(data)
-            json_api_response = json.loads(api_response.to_json())
-            log_data(f"SMS - Sent:\n\t{data} - {api_response}", "Sent_SMS")
-            return json_api_response['conversation_id'], json_api_response['timestamp'] 
+        #api_response = api_instance.post_conversations_messages_agentless(data)
+        json_api_response = json.loads(api_response.to_json())
+        log_data(f"SMS - Sent:\n\t{data} - {api_response}", "Sent_SMS")
+        return json_api_response['conversation_id'], json_api_response['timestamp'] 
     except:
         failed_record = {str(400):data}
         log_data(f"SMS - Failed:\n\t{failed_record}", "Failed_SMS")
@@ -136,7 +134,7 @@ def char_count(message):
     return message_segments
 
 
-def compose_sms(contact):
+def compose_sms(contact, number):
     log_data('Composing Message', 'SMS_RUN_APP')
     sms_messages = []
     sms_message = []
@@ -144,7 +142,7 @@ def compose_sms(contact):
         contact['Type'] = 'sms'
     for key, value in contact['sms'].items():
         sms_message.append(value)
-    message = f"Hi {contact['First']}, {str(' '.join(sms_message))}"
+    message = f" {str(' '.join(sms_message))}"
     message_segments = char_count(message)
     for count, x in enumerate(message_segments):
         data = {
@@ -185,9 +183,7 @@ def check_contact_record_in_db(contact, cl_uuid):
     queryset_2 = Sent_Call_List.objects.filter(cl_uuid=cl_uuid, )
     queryset_3 = SMS_Queued.objects.filter(cl_uuid=cl_uuid, )
 
-    print(len(queryset) + len(queryset_2) + len(queryset_3))
     if len(queryset) + len(queryset_2) + len(queryset_3) > 0 :
-        print('Contact already in DB')
         return 1
     return 0
 
@@ -204,11 +200,11 @@ def save_data(row, index, campaign_uuid, response='', status=''):
 
     if record:
         return 0
-
+    print(campaign_uuid)
     log_data(f"Saving Contact To DB: {df['inin-outbound-id']} - {df['First']} {df['Last']} - {df['Number']} - {df['Timezone']} - {df['PropertyID']} - {df['SMSMessage1']}", 'SMS_RUN_APP')
     sms_model.cl_uuid = df['inin-outbound-id']
     sms_model.Number = df['Number']
-    sms_model.campaign = campaign_uuid
+    sms_model.campaign = str(campaign_uuid).replace('-','')
     sms_model.Type = df['Type']
     sms_model.Timezone = df['Timezone']
     sms_model.First = df['First']
@@ -228,107 +224,130 @@ def save_data(row, index, campaign_uuid, response='', status=''):
 
 def query(campaign_uuid):
     queryset = SMS_Queued.objects.all()
-    queued = queryset.filter(campaign=campaign_uuid, queued=1).values('cl_uuid', 'First', 'Number', 'Type', 'Timezone', 'SMSMessage1')
+    queued = queryset.filter(campaign=str(campaign_uuid).replace('-',''), queued=1)
+    print("Queued Non-Dict:",len(queued))
     return queued
 
 
-def send_called_db(q):
+def send_called_db(contact, timestamp):
 
     sent_call_list = Sent_Call_List()
 
-    sent_call_list.campaign = q.campaign
-    sent_call_list.cl_uuid = q.cl_uuid
-    sent_call_list.Number = q.Number
-    sent_call_list.Type = q.Type
-    sent_call_list.Timezone = q.Timezone
-    sent_call_list.First = q.First
-    sent_call_list.Last = q.Last
-    sent_call_list.Address = q.Address
-    sent_call_list.City = q.City
-    sent_call_list.State = q.State
-    sent_call_list.Zip = q.Zip
-    sent_call_list.PropertyID = q.PropertyID
-    sent_call_list.UploadDate = q.UploadDate
-    sent_call_list.SMSMessage1 = q.SMSMessage1
+    sent_call_list.campaign = contact.campaign
+    sent_call_list.cl_uuid = contact.cl_uuid
+    sent_call_list.Number = contact.Number
+    sent_call_list.Type = contact.Type
+    sent_call_list.Timezone = contact.Timezone
+    sent_call_list.First = contact.First
+    sent_call_list.Last = contact.Last
+    sent_call_list.Address = contact.Address
+    sent_call_list.City = contact.City
+    sent_call_list.State = contact.State
+    sent_call_list.Zip = contact.Zip
+    sent_call_list.PropertyID = contact.PropertyID
+    sent_call_list.UploadDate = timestamp
+    sent_call_list.SMSMessage1 = contact.SMSMessage1
     sent_call_list.save()
-    q.delete()
+    contact.delete()
+    print('Record deleted and moved to failed db')
 
 
-def send_successful_db(uuid, q):
+def send_successful_db(uuid, contact, timestamp):
     # if not len(q) == 0:
     #     q = q[0]
-
+    print('Sent', contact)
     sms_successful= SMS_Successful()
 
-    sms_successful.campaign = q.campaign
-    sms_successful.cl_uuid = q.cl_uuid
-    sms_successful.Number = q.Number
-    sms_successful.Type = q.Type
-    sms_successful.Timezone = q.Timezone
-    sms_successful.First = q.First
-    sms_successful.Last = q.Last
-    sms_successful.Address = q.Address
-    sms_successful.City = q.City
-    sms_successful.State = q.State
-    sms_successful.Zip = q.Zip
-    sms_successful.PropertyID = q.PropertyID
-    sms_successful.UploadDate = q.UploadDate
-    sms_successful.SMSMessage1 = q.SMSMessage1
+    sms_successful.campaign = contact.campaign
+    sms_successful.cl_uuid = contact.cl_uuid
+    sms_successful.Number = contact.Number
+    sms_successful.Type = contact.Type
+    sms_successful.Timezone = contact.Timezone
+    sms_successful.First = contact.First
+    sms_successful.Last = contact.Last
+    sms_successful.Address = contact.Address
+    sms_successful.City = contact.City
+    sms_successful.State = contact.State
+    sms_successful.Zip = contact.Zip
+    sms_successful.PropertyID = contact.PropertyID
+    sms_successful.UploadDate = timestamp
+    sms_successful.SMSMessage1 = contact.SMSMessage1
     sms_successful.save()
-    q.delete()
+    contact.delete()
+    print('Contact Deleted')
 
 
-def send_contact_to_caller_list(contact_uuid, connection, campaign_uuid, contact_list_id):
+def send_contact_to_caller_list(contact_uuid, connection, campaign_uuid, contact_list_id, contact, timestamp):
     queryset = SMS_Queued.objects.all()
-    q = queryset.filter(campaign=campaign_uuid, cl_uuid=contact_uuid)
-    q = q[0]
+    # q = queryset.filter(campaign=campaign_uuid, cl_uuid=contact_uuid)
+    # q = q[0]
+    print(contact)
     body = [{
         "id": "",
         "contact_list_id": contact_list_id, 
         'data': {
-            'Number': q.Number,
-            'Type': q.Type,
-            'Timezone': q.Timezone,
-            'First': q.First,
-            'Last': q.Last,
-            'Address': q.Address,
-            'City': q.City,
-            'State': q.State,
-            'Zip': q.Zip,
-            'PropertyID': q.PropertyID,
+            'Number': contact.Number,
+            'Type': contact.Type,
+            'Timezone': contact.Timezone,
+            'First': contact.First,
+            'Last': contact.Last,
+            'Address': contact.Address,
+            'City': contact.City,
+            'State': contact.State,
+            'Zip': contact.Zip,
+            'PropertyID': contact.PropertyID,
             'UploadDate': datetime.datetime.utcnow().isoformat()[:18]+"Z"
         }
     }]
-    log_data(f"Sending To Caller List- {body}", "Caller_List_Send")
+    
+    send_called_db(contact, timestamp)
     try:
-        send_called_db(q)
-        api_instance = PureCloudPlatformClientV2.OutboundApi(connection)
-        api_response = api_instance.post_outbound_contactlist_contacts('88d6cd5f-28cb-42a4-9725-ea39c06892a5', body)
+        
+        if contact_list_id:
+            log_data(f"Sending To Caller List- {body}", "Caller_List_Send")
+            api_instance = PureCloudPlatformClientV2.OutboundApi(connection)
+            api_response = api_instance.post_outbound_contactlist_contacts('88d6cd5f-28cb-42a4-9725-ea39c06892a5', body)
         return 1
     except:
         log_data(f'Failed To Send To Caller List - {body}', 'Caller_List_Send')
         return 0
 
 
-def update_data(contact_uuid, status, response, timestamp, contact_list_id, connection, campaign_uuid, retainQueued):
+def update_data(contact_uuid, status, q, response, timestamp, contact_list_id, connection, campaign_uuid, retainQueued):
     # try:
+    contact = q
     queryset = SMS_Queued.objects.all()
     q = queryset.filter(campaign=campaign_uuid, cl_uuid=contact_uuid)
-    if not len(q) == 0:
-        q = q[0]
+    print('QUERY', q)
+    print('RESPONSE', response)
+    if response == 0:
+            # if contact_list_id:
+            print('Prosessing failed record: contact_uuid')
+            send_contact_to_caller_list(contact_uuid, connection, campaign_uuid, contact_list_id, contact, timestamp)
+    print('Sending successful - ')
+    print(q)
+    if contact:
+        print('Sending successful - ')
 
         if retainQueued:
             pass
-        elif status == 0:
-            send_contact_to_caller_list(contact_uuid, connection, campaign_uuid, contact_list_id)
+
         elif status == 1:
-            send_successful_db(contact_uuid, q)
+            send_successful_db(contact_uuid, contact, timestamp)
         return 1
         # except:
         #     pass
-    elif len(q) > 1:
-        for i in q[1:]:
-            i.delete()
+    # elif len(contact) > 1:
+    #     for i in contact[1:]:
+    #         i.delete()
+    #     contact = contact[0]
+
+    #     if retainQueued:
+    #         pass
+
+    #     elif status == 1:
+    #         send_successful_db(contact_uuid, q)
+    #     return 1
 
 
 def cleanup(campaign_uuid):
@@ -362,35 +381,46 @@ def downloadData(zillow_list_id, connection, campaign_uuid):
     uri = grab_lead_data(connection, zillow_list_id)
     if uri:
         data = download_data(uri)
+        # print(list(data.itterrows()))
         for count, (index, row) in enumerate(data.iterrows()):
+            print(f"{len(data)}\\{count}")
+            # print(type(data.itterrows()))
             contact_uuid = save_data(row, count, campaign_uuid)
+            #print(type(data))
+            #print(dir(data))
             if contact_uuid:
                 pass
                 #delete_contact_from_purecloud_list(os.environ.get['Tricon_Zillow_Contact_ID'], contact_uuid)
 
 
-def sendTexts(campaign_uuid, contact_list_id, startTime, endTime, connection):
+def sendTexts(campaign_uuid, contact_list_id, startTime, endTime, connection, number):
     queued = query(campaign_uuid)
+    # print(queued)
     for count, q in enumerate(queued):
+        print('QQQQQ', q)
+        log_data(f"Processing: Queued {len(queued)-1}\\{count}", "Queued")
         time.sleep(.05)
-        if checking_timezonez_in_range(startTime, endTime, q['Timezone']):
-            q['in_range'] = True
+        if checking_timezonez_in_range(startTime, endTime, q.Timezone):
+            q.in_range = True
             print('In range')
 
-            parsed_Data = parse_data(q)
-            composed_message = compose_sms(parsed_Data)
+            parsed_Data = parse_data(queued.values())
+            composed_message = compose_sms(parsed_Data, number)
 
             response = ''
             status = ''
+            # if count > 800:
             for message in composed_message:
-                response, timestamp = agentless_sms(connection, message)
+                if not q.First == 'chun':
+                    response, timestamp = agentless_sms(connection, message)
                 time.sleep(2)
-                status = check_status_of_sent_sms(connection, response)
-                log_data(f"Checking SMS Status: UUID: {q['cl_uuid']} - Status: {status} = Response: {response} = Timestamp: {timestamp}", 'SMS_RUN_APP')
-            contact_uuid = update_data(q['cl_uuid'], status, response, timestamp, contact_list_id, connection, campaign_uuid, retainQueued=0)
+                if response:
+                    status = check_status_of_sent_sms(connection, response)
+                    log_data(f"Checking SMS Status: UUID: {q.cl_uuid} - Status: {status} = Response: {response} = Timestamp: {timestamp}", 'SMS_RUN_APP')
+            contact_uuid = update_data(contact_uuid=q.cl_uuid, status=status, response=response, timestamp=timestamp, contact_list_id=contact_list_id, connection=connection, campaign_uuid=campaign_uuid, q=q, retainQueued=0)
         else:
             print('Not in range')
-            contact_uuid = update_data(q['cl_uuid'], contact_list_id=contact_list_id, campaign_uuid=campaign_uuid, status=0, response=0, timestamp=0, connection=connection, retainQueued=1)
+            contact_uuid = update_data(contact_uuid=q.cl_uuid, q=q, contact_list_id=contact_list_id, campaign_uuid=campaign_uuid, status=0, response=0, timestamp=0, connection=connection, retainQueued=1)
 
 
 class run():
@@ -398,16 +428,23 @@ class run():
     def __init__(self, event):
         print(event.job_id)
         campaign_uuid = event.job_id
-
+        #try:
         campaign_model = Campaign.objects.filter(send_texts_scheduler_uuid=campaign_uuid).values()[0]
+    
 
         self.campaign_model = campaign_model
-        self.Call_List_ID = campaign_model['Call_List_ID']
+        if campaign_model['Call_List_ID']:
+            self.Call_List_ID = campaign_model['Call_List_ID']
+        else:
+            self.Call_List_ID = 0
         self.zillow_list_id = campaign_model['zillow_list_id']
         self.startTime = campaign_model['start']
         self.endTime = campaign_model['end']
+        self.number = campaign_model['number']
 
         connection = connect_to_purecloud(campaign_model['purecloud_client_id'], campaign_model['purecloud_client_secret'])
-
-        downloadData(self.zillow_list_id, connection, campaign_uuid)
-        sendTexts(campaign_uuid, self.Call_List_ID, self.startTime, self.endTime, connection)
+        print('Starting')
+        downloadData(self.zillow_list_id, connection, campaign_model['uuid'])
+        sendTexts(campaign_model['uuid'], self.Call_List_ID, self.startTime, self.endTime, connection, self.number)
+        #except Exception as e:
+           #log_data('Operational Failure: {e}', 'SMS_RUN_APP')
