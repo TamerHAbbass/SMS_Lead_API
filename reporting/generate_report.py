@@ -95,7 +95,7 @@ def generate_4():
 
 
 sender = 'sos-api@team-sos.com'
-receivers = ['tabbass@team-sos.com', 'rthornton-ad@team-sos.com']
+receivers = ['tabbass@team-sos.com', 'tamerh.abbass@gmail.com']
 
 port = 	587
 user = 'sos-api@team-sos.com'
@@ -106,7 +106,7 @@ def send_report():
     msg = MIMEMultipart()
     msg['Subject'] = 'Tricon SMS Campaign Reporting'
     msg['From'] = sender
-    msg['To'] = receivers[0]
+    # msg['To'] = ','.join(receivers)
 
     report1, rfsuccess = generate()
     report2, zcsuccess = generate_2()
@@ -139,5 +139,8 @@ def send_report():
     body = MIMEText(body) # convert the body to a MIME compatible string
     msg.attach(body) # attach it to your main message
 
-    server = smtplib.SMTP('webmail.team-sos.com', timeout=6000)
-    server.sendmail(msg['From'], msg['To'], msg.as_string())
+    server = smtplib.SMTP('webmail.team-sos.com', timeout=6000)    
+
+    for i in receivers:
+        print(f"Sending to contact: {i}")
+        server.sendmail(msg['From'], to_addrs=i, msg=msg.as_string())

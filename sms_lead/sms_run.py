@@ -95,11 +95,10 @@ def checking_timezonez_in_range(startTime, endTime, timezone):
 
 
 def parse_data(row):
-    log_data('Parsing Data', 'SMS_RUN_APP')
+    log_data(f"Parsing Data: {row}", 'SMS_RUN_APP')
     sms = {}
     message = {}
     # row = handle_nan(row_na)
-    print(type(row))
     for r, l in row.items():
         if re.findall(r'^smsmessage', r.lower()):
             message[r] = l
@@ -115,7 +114,7 @@ def agentless_sms(apiclient, data):
     api_instance = PureCloudPlatformClientV2.ConversationsApi(apiclient)
     body = PureCloudPlatformClientV2.SendAgentlessOutboundMessageRequest()
     try:
-        #api_response = api_instance.post_conversations_messages_agentless(data)
+        api_response = api_instance.post_conversations_messages_agentless(data)
         json_api_response = json.loads(api_response.to_json())
         log_data(f"SMS - Sent:\n\t{data} - {api_response}", "Sent_SMS")
         return json_api_response['conversation_id'], json_api_response['timestamp'] 
@@ -302,7 +301,6 @@ def send_contact_to_caller_list(contact_uuid, connection, campaign_uuid, contact
     
     send_called_db(contact, timestamp)
     try:
-        
         if contact_list_id:
             log_data(f"Sending To Caller List- {body}", "Caller_List_Send")
             api_instance = PureCloudPlatformClientV2.OutboundApi(connection)
@@ -383,7 +381,8 @@ def downloadData(zillow_list_id, connection, campaign_uuid):
         data = download_data(uri)
         # print(list(data.itterrows()))
         for count, (index, row) in enumerate(data.iterrows()):
-            print(f"{len(data)}\\{count}")
+            if count % 1000 == 0:
+                print(f"{len(data)}\\{count}")
             # print(type(data.itterrows()))
             contact_uuid = save_data(row, count, campaign_uuid)
             #print(type(data))
@@ -403,16 +402,16 @@ def sendTexts(campaign_uuid, contact_list_id, startTime, endTime, connection, nu
         if checking_timezonez_in_range(startTime, endTime, q.Timezone):
             q.in_range = True
             print('In range')
-
-            parsed_Data = parse_data(queued.values())
+            queued_val = queued.values()
+            parsed_Data = parse_data(q.__dict__)
             composed_message = compose_sms(parsed_Data, number)
 
             response = ''
             status = ''
             # if count > 800:
             for message in composed_message:
-                if not q.First == 'chun':
-                    response, timestamp = agentless_sms(connection, message)
+                
+                response, timestamp = agentless_sms(connection, message)
                 time.sleep(2)
                 if response:
                     status = check_status_of_sent_sms(connection, response)
@@ -441,10 +440,15 @@ class run():
         self.startTime = campaign_model['start']
         self.endTime = campaign_model['end']
         self.number = campaign_model['number']
-
-        connection = connect_to_purecloud(campaign_model['purecloud_client_id'], campaign_model['purecloud_client_secret'])
-        print('Starting')
-        downloadData(self.zillow_list_id, connection, campaign_model['uuid'])
-        sendTexts(campaign_model['uuid'], self.Call_List_ID, self.startTime, self.endTime, connection, self.number)
-        #except Exception as e:
-           #log_data('Operational Failure: {e}', 'SMS_RUN_APP')
+        try:
+            connection = connect_to_purecloud(campaign_model['purecloud_client_id'], campaign_model['purecloud_client_secret'])
+        except Exception as e:
+            log_data(f"Connection | Operational Error: {e}", 'SMS_RUN_APP')
+        try:
+            downloadData(self.zillow_list_id, connection, campaign_model['uuid'])
+        except Exception as e:
+            log_data(f"Data Pull | Operational Failure: {e}", 'SMS_RUN_APP')
+        try:
+            sendTexts(campaign_model['uuid'], self.Call_List_ID, self.startTime, self.endTime, connection, self.number)
+        except Exception as e:
+           log_data(f"Text Send | Operational Failure: {e}", 'SMS_RUN_APP')
