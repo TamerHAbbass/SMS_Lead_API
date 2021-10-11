@@ -50,10 +50,6 @@ def download_data(req):
       return zillow_json
 
 
-zillow_list_id = "01a57f23-2291-4a4f-be6d-a361682a1b91"
-client_id = "c3f54142-d15e-40d6-a1cd-c7a0cb6c57ba"
-secret_id = "9Ii0P2GaChX5JSz9_X54OKEU1pHiW0SXie9Khub26RI"
-
 
 
 region = PureCloudPlatformClientV2.PureCloudRegionHosts.us_west_2
