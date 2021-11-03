@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from sms_lead.sms_run import run
+from reporting.generate_report import send_report
 from apscheduler import events
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -10,6 +11,7 @@ from sms_lead.management.commands.jobstores import DjangoJobStore
 from sms_lead.models import DjangoJobExecution
 from sms_lead.management.commands import util
 from reporting.generate_report import generate, generate_2
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -47,17 +49,18 @@ class Command(BaseCommand):
       scheduler.add_jobstore(DjangoJobStore(), "default")
 
 
-    #   scheduler.add_job(
-    #       run,
-    #       "interval",
-    #       seconds=30
-    #   )
-    #   logger.info("Added job 'sendTexts'.")
+      # scheduler.add_job(
+      #     send_report,
+      #     "interval",
+      #     hours=24,
+      #     next_run_time=datetime.datetime(2021, 10, 8, 6, 0, 0, 00000)
+      # )
+      # logger.info("Added job 'sendTexts'.")
                 
       # scheduler.add_job(
       #       run,
       #       trigger = 'interval',
-      #       seconds = 10,
+      #       seconds = 30,
       #       max_instances = 1,
       #       coalesce = True
       #   )
@@ -73,7 +76,7 @@ class Command(BaseCommand):
       # scheduler.add_job(
       #       run,
       #       trigger = 'interval',
-      #       seconds = 30,
+      #       seconds = 10,
       #       max_instances = 1,
       #       coalesce = True
       #   )        
