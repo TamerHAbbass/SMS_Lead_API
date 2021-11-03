@@ -99,7 +99,11 @@ def generate_4():
 
 
 sender = 'sos-api@team-sos.com'
+<<<<<<< HEAD
 receivers = ['tabbass@team-sos.com', 'rthornton@team-sos.com', 'gknutson@triconresidential.com']
+=======
+receivers = ['tabbass@team-sos.com', 'tamerh.abbass@gmail.com']
+>>>>>>> 7ee78a9d7ebb5b346c692dee810ff9194633f7b9
 
 port = 	587
 user = 'sos-api@team-sos.com'
