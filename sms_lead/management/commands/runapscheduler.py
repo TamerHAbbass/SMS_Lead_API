@@ -60,7 +60,7 @@ class Command(BaseCommand):
       # scheduler.add_job(
       #       run,
       #       trigger = 'interval',
-      #       seconds = 10,
+      #       seconds = 30,
       #       max_instances = 1,
       #       coalesce = True
       #   )
@@ -76,7 +76,7 @@ class Command(BaseCommand):
       # scheduler.add_job(
       #       run,
       #       trigger = 'interval',
-      #       seconds = 30,
+      #       seconds = 10,
       #       max_instances = 1,
       #       coalesce = True
       #   )        

@@ -47,7 +47,7 @@ def grab_lead_data(apiclient, contact_list_id):
     try:
         api_instance = PureCloudPlatformClientV2.OutboundApi(apiclient)
         api_instance.post_outbound_contactlist_export(zillow_list_id)
-        time.sleep(60)
+        time.sleep(30)
 
         # Grab Zillow_Master download URI
         exporturi = api_instance.get_outbound_contactlist_export(zillow_list_id).to_dict()
@@ -70,28 +70,30 @@ def download_data(req):
 
 def checking_timezonez_in_range(startTime, endTime, timezone):
     log_data('Verifying Timezone Within Range', 'SMS_RUN_APP')
+    if timezone:
+        try:
+            startTime = datetime.datetime.strptime(startTime, "%H:%M:%S").time()
+            endTime = datetime.datetime.strptime(endTime, "%H:%M:%S").time()
 
-    try:
-        startTime = datetime.datetime.strptime(startTime, "%H:%M:%S").time()
-        endTime = datetime.datetime.strptime(endTime, "%H:%M:%S").time()
+            # get the standard UTC time 
+            UTC = pytz.utc
+            
+            # it will get the time zone 
+            # of the specified location
+            IST = datetime.datetime.now(pytz.timezone(timezone))
+            time_in_zone = datetime.datetime.strptime(IST.strftime('%T'), "%H:%M:%S").time()
 
-        # get the standard UTC time 
-        UTC = pytz.utc
-        
-        # it will get the time zone 
-        # of the specified location
-        IST = datetime.datetime.now(pytz.timezone(timezone))
-        time_in_zone = datetime.datetime.strptime(IST.strftime('%T'), "%H:%M:%S").time()
-
-        if startTime < endTime: 
-            log_data(f"Timezone Within Range: \n\t{timezone}: {time_in_zone >= startTime and time_in_zone <= endTime}", 'SMS_RUN_APP')
-            return time_in_zone >= startTime and time_in_zone <= endTime 
-        else: 
-            log_data(f"Timezone Within Range: \n\t{timezone}: {time_in_zone >= startTime and time_in_zone <= endTime}", 'SMS_RUN_APP')
-            #Over midnight: 
-            return time_in_zone >= startTime or time_in_zone <= endTime 
-    except:
-        return False
+            if startTime < endTime: 
+                log_data(f"Timezone Within Range: \n\t{timezone}: {time_in_zone >= startTime and time_in_zone <= endTime}", 'SMS_RUN_APP')
+                return time_in_zone >= startTime and time_in_zone <= endTime 
+            else: 
+                log_data(f"Timezone Within Range: \n\t{timezone}: {time_in_zone >= startTime and time_in_zone <= endTime}", 'SMS_RUN_APP')
+                #Over midnight: 
+                return time_in_zone >= startTime or time_in_zone <= endTime 
+        except:
+            return False
+    else:
+        return True
 
 
 def parse_data(row):
@@ -144,8 +146,9 @@ def compose_sms(contact, number):
     message = f" {str(' '.join(sms_message))}"
     message_segments = char_count(message)
     for count, x in enumerate(message_segments):
+        
         data = {
-        "fromAddress": str(os.environ.get('Tricon_fromAddress')),
+        "fromAddress": f"{str(number)}",
         "toAddress": ''.join(["+1", str(contact['Number'])]),
         "toAddressMessengerType": str(contact['Type']),
         "textBody": x,
@@ -181,41 +184,54 @@ def check_contact_record_in_db(contact, cl_uuid):
     queryset = SMS_Successful.objects.filter(cl_uuid=cl_uuid, )
     queryset_2 = Sent_Call_List.objects.filter(cl_uuid=cl_uuid, )
     queryset_3 = SMS_Queued.objects.filter(cl_uuid=cl_uuid, )
-
     if len(queryset) + len(queryset_2) + len(queryset_3) > 0 :
         return 1
     return 0
 
 
 def save_data(row, index, campaign_uuid, response='', status=''):
-
     sms_model = SMS_Queued()
 
     # Handle Na values
     df = pandas.DataFrame(row)
     df = df.fillna(0).to_dict()[index]
-
+    # df = df.fillna(0).to_dict()
     record = check_contact_record_in_db(df, df['inin-outbound-id'])
-
     if record:
         return 0
-    print(campaign_uuid)
-    log_data(f"Saving Contact To DB: {df['inin-outbound-id']} - {df['First']} {df['Last']} - {df['Number']} - {df['Timezone']} - {df['PropertyID']} - {df['SMSMessage1']}", 'SMS_RUN_APP')
-    sms_model.cl_uuid = df['inin-outbound-id']
-    sms_model.Number = df['Number']
-    sms_model.campaign = str(campaign_uuid).replace('-','')
-    sms_model.Type = df['Type']
-    sms_model.Timezone = df['Timezone']
-    sms_model.First = df['First']
-    sms_model.Last = df['Last']
-    sms_model.Address = df['Address']
-    sms_model.City = df['City']
-    sms_model.State = df['State']
-    sms_model.Zip = df['Zip']
-    sms_model.PropertyID = df['PropertyID']
-    sms_model.SMSMessage1 = df['SMSMessage1']
-    sms_model.queued = 1
-    sms_model.save()
+    print(dir(campaign_uuid))
+    if not str(campaign_uuid).replace('-', '') == "506eb9e5e38a4ad4a058485897ad0596":
+        log_data(f"Saving Contact To DB: {df['inin-outbound-id']} - {df['First']} {df['Last']} - {df['Number']} - {df['Timezone']} - {df['PropertyID']} - {df['SMSMessage1']}", 'SMS_RUN_APP')
+        sms_model.cl_uuid = df['inin-outbound-id']
+        sms_model.Number = df['Number']
+        sms_model.campaign = str(campaign_uuid).replace('-','')
+        sms_model.Type = df['Type']
+        sms_model.Timezone = df['Timezone']
+        sms_model.First = df['First']
+        sms_model.Last = df['Last']
+        sms_model.Address = df['Address']
+        sms_model.City = df['City']
+        sms_model.State = df['State']
+        sms_model.Zip = df['Zip']
+        sms_model.PropertyID = df['PropertyID']
+        sms_model.SMSMessage1 = df['SMSMessage1']
+        sms_model.queued = 1
+        sms_model.save()
+    else:
+        log_data(f"Saving Contact To DB: {df['inin-outbound-id']} - {df['ResidentName']} - {df['Number']} - {df['PropertyName']} - {df['SMSMessage1']}", 'SMS_RUN_APP')
+        sms_model.cl_uuid = df['inin-outbound-id']
+        sms_model.Number = df['Number']
+        sms_model.campaign = str(campaign_uuid).replace('-','')
+        sms_model.Type = df['Type']
+
+        name = df["ResidentName"]
+        sms_model.First = name
+        # sms_model.Last = name[1]
+        sms_model.Timezone = True
+        sms_model.PropertyID = df['PropertyName']
+        sms_model.SMSMessage1 = df['SMSMessage1']
+        sms_model.queued = 1
+        sms_model.save()
 
     return df['inin-outbound-id']
 
@@ -232,23 +248,37 @@ def send_called_db(contact, timestamp):
 
     sent_call_list = Sent_Call_List()
 
-    sent_call_list.campaign = contact.campaign
-    sent_call_list.cl_uuid = contact.cl_uuid
-    sent_call_list.Number = contact.Number
-    sent_call_list.Type = contact.Type
-    sent_call_list.Timezone = contact.Timezone
-    sent_call_list.First = contact.First
-    sent_call_list.Last = contact.Last
-    sent_call_list.Address = contact.Address
-    sent_call_list.City = contact.City
-    sent_call_list.State = contact.State
-    sent_call_list.Zip = contact.Zip
-    sent_call_list.PropertyID = contact.PropertyID
-    sent_call_list.UploadDate = timestamp
-    sent_call_list.SMSMessage1 = contact.SMSMessage1
-    sent_call_list.save()
-    contact.delete()
-    print('Record deleted and moved to failed db')
+    if not str(contact.campaign).replace('-', '') == "506eb9e5e38a4ad4a058485897ad0596":
+        sent_call_list.campaign = contact.campaign
+        sent_call_list.cl_uuid = contact.cl_uuid
+        sent_call_list.Number = contact.Number
+        sent_call_list.Type = contact.Type
+        sent_call_list.Timezone = contact.Timezone
+        sent_call_list.First = contact.First
+        sent_call_list.Last = contact.Last
+        sent_call_list.Address = contact.Address
+        sent_call_list.City = contact.City
+        sent_call_list.State = contact.State
+        sent_call_list.Zip = contact.Zip
+        sent_call_list.PropertyID = contact.PropertyID
+        sent_call_list.UploadDate = timestamp
+        sent_call_list.SMSMessage1 = contact.SMSMessage1
+        sent_call_list.save()
+        contact.delete()
+        print('Record deleted and moved to failed db')
+    else:
+        sent_call_list.campaign = contact.campaign
+        sent_call_list.cl_uuid = contact.cl_uuid
+        sent_call_list.Number = contact.Number
+        sent_call_list.Type = contact.Type
+        sent_call_list.First = contact.First
+        sent_call_list.Last = contact.Last
+        sent_call_list.PropertyID = contact.PropertyID
+        sent_call_list.UploadDate = timestamp
+        sent_call_list.SMSMessage1 = contact.SMSMessage1
+        sent_call_list.save()
+        contact.delete()
+        print('Record deleted and moved to failed DB')
 
 
 def send_successful_db(uuid, contact, timestamp):
@@ -256,25 +286,37 @@ def send_successful_db(uuid, contact, timestamp):
     #     q = q[0]
     print('Sent', contact)
     sms_successful= SMS_Successful()
-
-    sms_successful.campaign = contact.campaign
-    sms_successful.cl_uuid = contact.cl_uuid
-    sms_successful.Number = contact.Number
-    sms_successful.Type = contact.Type
-    sms_successful.Timezone = contact.Timezone
-    sms_successful.First = contact.First
-    sms_successful.Last = contact.Last
-    sms_successful.Address = contact.Address
-    sms_successful.City = contact.City
-    sms_successful.State = contact.State
-    sms_successful.Zip = contact.Zip
-    sms_successful.PropertyID = contact.PropertyID
-    sms_successful.UploadDate = timestamp
-    sms_successful.SMSMessage1 = contact.SMSMessage1
-    sms_successful.save()
-    contact.delete()
-    print('Contact Deleted')
-
+    if not str(contact.campaign).replace('-', '') == "506eb9e5e38a4ad4a058485897ad0596":
+        sms_successful.campaign = contact.campaign
+        sms_successful.cl_uuid = contact.cl_uuid
+        sms_successful.Number = contact.Number
+        sms_successful.Type = contact.Type
+        sms_successful.Timezone = contact.Timezone
+        sms_successful.First = contact.First
+        sms_successful.Last = contact.Last
+        sms_successful.Address = contact.Address
+        sms_successful.City = contact.City
+        sms_successful.State = contact.State
+        sms_successful.Zip = contact.Zip
+        sms_successful.PropertyID = contact.PropertyID
+        sms_successful.UploadDate = timestamp
+        sms_successful.SMSMessage1 = contact.SMSMessage1
+        sms_successful.save()
+        contact.delete()
+        print('Contact Deleted')
+    else:
+        sms_successful.campaign = contact.campaign
+        sms_successful.cl_uuid = contact.cl_uuid
+        sms_successful.Number = contact.Number
+        sms_successful.Type = contact.Type
+        sms_successful.First = contact.First
+        sms_successful.Last = contact.Last
+        sms_successful.PropertyID = contact.PropertyID
+        sms_successful.UploadDate = timestamp
+        sms_successful.SMSMessage1 = contact.SMSMessage1
+        sms_successful.save()
+        contact.delete()
+        print('Record deleted and moved to failed DB')
 
 def send_contact_to_caller_list(contact_uuid, connection, campaign_uuid, contact_list_id, contact, timestamp):
     queryset = SMS_Queued.objects.all()
@@ -322,8 +364,7 @@ def update_data(contact_uuid, status, q, response, timestamp, contact_list_id, c
             # if contact_list_id:
             print('Prosessing failed record: contact_uuid')
             send_contact_to_caller_list(contact_uuid, connection, campaign_uuid, contact_list_id, contact, timestamp)
-    print('Sending successful - ')
-    print(q)
+    
     if contact:
         print('Sending successful - ')
 
@@ -333,19 +374,6 @@ def update_data(contact_uuid, status, q, response, timestamp, contact_list_id, c
         elif status == 1:
             send_successful_db(contact_uuid, contact, timestamp)
         return 1
-        # except:
-        #     pass
-    # elif len(contact) > 1:
-    #     for i in contact[1:]:
-    #         i.delete()
-    #     contact = contact[0]
-
-    #     if retainQueued:
-    #         pass
-
-    #     elif status == 1:
-    #         send_successful_db(contact_uuid, q)
-    #     return 1
 
 
 def cleanup(campaign_uuid):
@@ -384,10 +412,10 @@ def downloadData(zillow_list_id, connection, campaign_uuid):
             if count % 1000 == 0:
                 print(f"{len(data)}\\{count}")
             # print(type(data.itterrows()))
-            contact_uuid = save_data(row, count, campaign_uuid)
+            contact_uuid = save_data(row, index, campaign_uuid)
             #print(type(data))
             #print(dir(data))
-            if contact_uuid:
+            if contact_uuid == 0:
                 pass
                 #delete_contact_from_purecloud_list(os.environ.get['Tricon_Zillow_Contact_ID'], contact_uuid)
 
@@ -398,8 +426,30 @@ def sendTexts(campaign_uuid, contact_list_id, startTime, endTime, connection, nu
     for count, q in enumerate(queued):
         print('QQQQQ', q)
         log_data(f"Processing: Queued {len(queued)-1}\\{count}", "Queued")
-        time.sleep(.05)
-        if checking_timezonez_in_range(startTime, endTime, q.Timezone):
+        time.sleep(1)
+        if q.Timezone == True:
+            if checking_timezonez_in_range(startTime, endTime, q.Timezone) == True:
+                q.in_range = True
+                print('In range')
+                queued_val = queued.values()
+                parsed_Data = parse_data(q.__dict__)
+                composed_message = compose_sms(parsed_Data, number)
+
+                response = ''
+                status = ''
+
+                for message in composed_message:
+                    
+                    response, timestamp = agentless_sms(connection, message)
+                    time.sleep(2)
+                    if response:
+                        status = check_status_of_sent_sms(connection, response)
+                        log_data(f"Checking SMS Status: UUID: {q.cl_uuid} - Status: {status} = Response: {response} = Timestamp: {timestamp}", 'SMS_RUN_APP')
+                contact_uuid = update_data(contact_uuid=q.cl_uuid, status=status, response=response, timestamp=timestamp, contact_list_id=contact_list_id, connection=connection, campaign_uuid=campaign_uuid, q=q, retainQueued=0)
+            else:
+                print('Not in range')
+                contact_uuid = update_data(contact_uuid=q.cl_uuid, q=q, contact_list_id=contact_list_id, campaign_uuid=campaign_uuid, status=0, response=0, timestamp=0, connection=connection, retainQueued=1)
+        else:
             q.in_range = True
             print('In range')
             queued_val = queued.values()
@@ -408,7 +458,7 @@ def sendTexts(campaign_uuid, contact_list_id, startTime, endTime, connection, nu
 
             response = ''
             status = ''
-            # if count > 800:
+
             for message in composed_message:
                 
                 response, timestamp = agentless_sms(connection, message)
@@ -417,20 +467,13 @@ def sendTexts(campaign_uuid, contact_list_id, startTime, endTime, connection, nu
                     status = check_status_of_sent_sms(connection, response)
                     log_data(f"Checking SMS Status: UUID: {q.cl_uuid} - Status: {status} = Response: {response} = Timestamp: {timestamp}", 'SMS_RUN_APP')
             contact_uuid = update_data(contact_uuid=q.cl_uuid, status=status, response=response, timestamp=timestamp, contact_list_id=contact_list_id, connection=connection, campaign_uuid=campaign_uuid, q=q, retainQueued=0)
-        else:
-            print('Not in range')
-            contact_uuid = update_data(contact_uuid=q.cl_uuid, q=q, contact_list_id=contact_list_id, campaign_uuid=campaign_uuid, status=0, response=0, timestamp=0, connection=connection, retainQueued=1)
-
+      
 
 class run():
 
     def __init__(self, event):
-        print(event.job_id)
         campaign_uuid = event.job_id
-        #try:
         campaign_model = Campaign.objects.filter(send_texts_scheduler_uuid=campaign_uuid).values()[0]
-    
-
         self.campaign_model = campaign_model
         if campaign_model['Call_List_ID']:
             self.Call_List_ID = campaign_model['Call_List_ID']
@@ -444,11 +487,11 @@ class run():
             connection = connect_to_purecloud(campaign_model['purecloud_client_id'], campaign_model['purecloud_client_secret'])
         except Exception as e:
             log_data(f"Connection | Operational Error: {e}", 'SMS_RUN_APP')
-        try:
-            downloadData(self.zillow_list_id, connection, campaign_model['uuid'])
-        except Exception as e:
-            log_data(f"Data Pull | Operational Failure: {e}", 'SMS_RUN_APP')
-        try:
-            sendTexts(campaign_model['uuid'], self.Call_List_ID, self.startTime, self.endTime, connection, self.number)
-        except Exception as e:
-           log_data(f"Text Send | Operational Failure: {e}", 'SMS_RUN_APP')
+        # try:
+        downloadData(self.zillow_list_id, connection, campaign_model['uuid'])
+        # except Exception as e:
+        #     log_data(f"Data Pull | Operational Failure: {e}", 'SMS_RUN_APP')
+        # try:
+        sendTexts(campaign_model['uuid'], self.Call_List_ID, self.startTime, self.endTime, connection, self.number)
+        # except Exception as e:
+        #    log_data(f"Text Send | Operational Failure: {e}", 'SMS_RUN_APP')
