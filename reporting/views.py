@@ -5,7 +5,7 @@ import json
 from sms_lead.models import Sent_Call_List, SMS_Successful
 from . import forms
 import datetime
-from .generate_report import generate
+# from .generate_report import generate
 
 
 class DailySMSSuccessSummaryView(generic.View):
