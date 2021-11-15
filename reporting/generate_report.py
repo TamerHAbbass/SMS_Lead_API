@@ -68,7 +68,7 @@ class GenerateReport:
 
         port = 	587
         user = 'sos-api@team-sos.com'
-        password = 'yuXn>jvuR7n*XQFH'
+        password = '**'
 
         msg = MIMEMultipart()
         msg['Subject'] = 'Tricon SMS Campaign Reporting'
