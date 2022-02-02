@@ -132,3 +132,4 @@ dmypy.json
 documentation/
 logs/
 *.bak
+./sms_lead/test.py
