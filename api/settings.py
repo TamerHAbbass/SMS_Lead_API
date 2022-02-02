@@ -172,11 +172,11 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS')
-# EMAIL_HOST = os.environ.get('EMAIL_HOST')
-# EMAIL_PORT = os.environ.get('EMAIL_PORT')
-# EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
-# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = 'yes'
+EMAIL_HOST = 'smtp.office365.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'sos-api@team-sos.com'
+EMAIL_HOST_PASSWORD = 'YQyBjZCA)ye8kBdA'
 
 
 '''Django-APScheduler Settings'''

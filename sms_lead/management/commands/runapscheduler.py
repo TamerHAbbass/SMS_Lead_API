@@ -2,7 +2,6 @@ import logging
 
 from django.conf import settings
 from sms_lead.sms_run import run
-from reporting.generate_report import send_report
 from apscheduler import events
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -10,7 +9,7 @@ from django.core.management.base import BaseCommand
 from sms_lead.management.commands.jobstores import DjangoJobStore
 from sms_lead.models import DjangoJobExecution
 from sms_lead.management.commands import util
-from reporting.generate_report import generate, generate_2
+from reporting.generate_report import main as send_report
 import datetime
 
 logger = logging.getLogger(__name__)
@@ -41,62 +40,8 @@ class Command(BaseCommand):
   help = "Runs APScheduler."
 
   def handle(self, *args, **options):
-      scheduler = BlockingScheduler({
-        'apscheduler.executors.default': {
-        'class': 'apscheduler.executors.pool:ThreadPoolExecutor',
-        'max_workers': '10'
-			}},  timezone=settings.TIME_ZONE)
+      scheduler = BlockingScheduler({'apscheduler.executors.default': {'class': 'apscheduler.executors.pool:ThreadPoolExecutor','max_workers': '10'}},  timezone=settings.TIME_ZONE)
       scheduler.add_jobstore(DjangoJobStore(), "default")
-
-
-      # scheduler.add_job(
-      #     send_report,
-      #     "interval",
-      #     hours=24,
-      #     next_run_time=datetime.datetime(2021, 10, 8, 6, 0, 0, 00000)
-      # )
-      # logger.info("Added job 'sendTexts'.")
-                
-      # scheduler.add_job(
-      #       run,
-      #       trigger = 'interval',
-      #       seconds = 30,
-      #       max_instances = 1,
-      #       coalesce = True
-      #   )
-      
-      # scheduler.add_job(
-      #       run,
-      #       trigger = 'interval',
-      #       hours = 24,
-      #       max_instances = 1,
-      #       coalesce = True
-      #   )
-
-      # scheduler.add_job(
-      #       run,
-      #       trigger = 'interval',
-      #       seconds = 10,
-      #       max_instances = 1,
-      #       coalesce = True
-      #   )        
-
-    #   logger.info("Added job 'sendTexts'.")
-
-
-    #   scheduler.add_job(
-    #       delete_old_job_executions,
-    #       trigger=CronTrigger(
-    #           day_of_week="mon", hour="00", minute="00"
-    #       ),
-    #       # Midnight on Monday, before start of the next work week.
-    #       id="delete_old_job_executions",
-    #       replace_existing=True,
-    #   )
-    #   logger.info(
-    #       "Added weekly job: 'delete_old_job_executions'."
-    #   )
-
 
       try:
           logger.info("Starting scheduler...")

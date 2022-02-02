@@ -471,7 +471,7 @@ def sendTexts(campaign_uuid, contact_list_id, startTime, endTime, connection, nu
 
 class run():
 
-    def __init__(self, event):
+    def __init__(self, event=''):
         campaign_uuid = event.job_id
         campaign_model = Campaign.objects.filter(send_texts_scheduler_uuid=campaign_uuid).values()[0]
         self.campaign_model = campaign_model

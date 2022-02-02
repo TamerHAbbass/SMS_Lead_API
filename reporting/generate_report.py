@@ -66,9 +66,9 @@ class GenerateReport:
         sender = 'sos-api@team-sos.com'
         receivers = receivers
 
-        port = 	587
+        port = 	'587'
         user = 'sos-api@team-sos.com'
-        password = 'yuXn>jvuR7n*XQFH'
+        password = 'YQyBjZCA)ye8kBdA'
 
         msg = MIMEMultipart()
         msg['Subject'] = 'Tricon SMS Campaign Reporting'
@@ -84,8 +84,11 @@ class GenerateReport:
         body = MIMEText(body) # convert the body to a MIME compatible string
         msg.attach(body) # attach it to your main message
 
-        server = smtplib.SMTP('webmail.team-sos.com', timeout=6000)    
 
+        server = smtplib.SMTP('webmail.team-sos.com',timeout=6000)
+        # server.login(user=user, password=password)
+        server.starttls()
+        server.login(user=user, password=password)
         for i in receivers:
             print(f"Sending to contact: {i}")
             server.sendmail(msg['From'], to_addrs=i, msg=msg.as_string())
@@ -106,7 +109,7 @@ def processReport(campaign_name, columns, receivers, days):
 
 
 def main():
-    receivers = ['tabbass@team-sos.com', 'tamerh.abbass@gmail.com', 'rthornton@team-sos.com', 'gknutson@triconresidential.com']
+    receivers = ['tabbass@team-sos.com', 'rthornton@team-sos.com', 'gknutson@triconresidential.com']
 
     # Rental Forgiveness & Zillow Contacts Reports
     columns = {'Number': '', 'First': '', 'Last': '', 'Address': '', 'City': '', 'State': '', 'Zip': '', 'PropertyID': '','SMSMessage1': '',  'updated': ''}
@@ -116,6 +119,7 @@ def main():
     # MF_Communications
     columns = {'Number': '', 'First': '', 'PropertyID': '', 'SMSMessage1': '', 'updated': ''}
     processReport('MF_Communications', columns, receivers, days=7)
+
 
 
 if __name__ == '__main__':
