@@ -119,7 +119,7 @@ DATABASES = {
         'ENGINE': 'sql_server.pyodbc',
         'NAME': 'sms_leads',
         'USER': 'sa_tabbass',
-        'PASSWORD': 'S0S$tah!',
+        'PASSWORD': '',
         'HOST': 'Cloud1-API',
         'PORT': '',
         'OPTIONS': {
@@ -176,7 +176,7 @@ EMAIL_USE_TLS = 'yes'
 EMAIL_HOST = 'smtp.office365.com'
 EMAIL_PORT = 587
 EMAIL_HOST_USER = 'sos-api@team-sos.com'
-EMAIL_HOST_PASSWORD = 'YQyBjZCA)ye8kBdA'
+EMAIL_HOST_PASSWORD = ''
 
 
 '''Django-APScheduler Settings'''
